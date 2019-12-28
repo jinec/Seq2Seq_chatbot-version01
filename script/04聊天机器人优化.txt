@@ -1,0 +1,43 @@
+优化：
+ 
+ add:
+ 1.swift cpu&gpu by the global_-->DEV_FLAG                                global_
+ 2.add dropout just for input;maybe you like drop output and change       seq2seq_model
+ 3.add epoch                                                              train(lib)
+ 4.add Chinese chat （自己英文改中文）                                                      _*_
+ 5.add tensorboard loss-show  （自己手写的，当时没有这个）                seq2seq_model
+ 6.add the 5th min loss point （保存的是5个局部最优点，在epoch的横轴上）  lib/trian for model
+ 7.add early stop criteria     （不用到最优点，时间太长）                                          lib/trian
+ 8.add L2 regularization                                                  seq2seq_enhance linear_function_enhance
+ 9.add the current loss point                                             --for training breakpoint
+ 10.add stop_word                 （停用词，不同的场景不同的）;标点符号要去掉，因为是大概率模型         
+"语气词：呀 吗 吧 呢 呵 呃 呕 呗 呜 哎 唉 啊 啦 ；      了；   三个的：的 得 地      代词：你 ；  标点符号：， ？ ！ ! ? 、 。 , ~ ."
+比如：‘你好’、‘你好呀’、‘天呀’相似度混乱；‘你好’和‘好’；去不去掉看效果好坏。
+
+ 11.add sorted words cut                                                  _*_
+ 
+ optimizing:
+ 1.cancel the redundant punctuation and right side
+ 2.
+
+
+ 
+调参：
+ debug:把loss降下来就好。三个参数。bath_size跟loss的影响很小，只跟样本量有很大关系
+ 1. unit_size 2048（即本程序中的size） ；bath_size  256                   OOM
+ 2. unit_size (256->64) unit_size(2048->256)              
+ 3. lr(0.5->0.1) bath_size(64->10) unit_size(256->300) (split("[]/'?.")->split(" "))
+ 4. lr(0.1->0.001) bach_size(10->32) unit_size(300->500)                  En--overfitting
+ 5. lr(0.001) min_lr(0.00001) bach_size(10) unit_size(100)                Ch--fine 
+注意：
+（1）调之后，100万条以上的大数据，采样一部分调试就行；
+（2）model和log日志一定要清除掉；
+（3）优化器换后，学习率一定要重新调试；
+（4）再牛逼点，可改 网络层数、卷积核设计（变大、变小、膨胀卷积核）和个数、
+
+
+语料的预处理：
+0. 爬取
+1. 去重
+2. 清洗--违禁词与长句
+3. 数据扩增

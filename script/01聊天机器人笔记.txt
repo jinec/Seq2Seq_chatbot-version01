@@ -1,0 +1,58 @@
+解码器一般情况生成答案的时候参考了：1.解码器上个时刻的输出 2.解码上个时刻的递归状态 3. 编码器最后一个时刻的输出
+解码器生成第一个字的时候参考了：1.开始标记"go"(实际上无信息) 2.编码器最后一个时刻的递归状态 3.编码器最后一个时刻
+的输出(加在哪里啊？)
+
+解码器加入Attention,参考了：1.上个时刻解码器的输出 2.上个时刻解码器的状态递归输出 3.参考了编码器各个输出的权重（拼接+卷积）
+attention注意力机制的调权是通过bp过程进行的，c被c(i)代替了，在bp过程中c(i)可变；（此处还有问题，c是谁？）
+i是解码器第i个位置(时刻);j是编码器第j个位置;h(j)是编码器第j个位置的输出,在BP的过程中不能变，一定要a(ij)变化；那么
+要求e(ij)可变；真正可变的就是v(a)/W(a)/U(a)
+
+解码器：
+1.编码器只有输入和输出两部分；
+2.解码器有输入、输出两部分，若是训练，还有label,一共3部分;
+3.解码器的预测输出是数字(是文字的数字化表示？是one_hot吗？),所以在训练过程中，要对label中的文字先数字化，在与预测输出的数字比对，
+  再bp；
+4.预测的数字化输出作为下一个时刻的输入的时候，一定要先进行embedding,符合解码器输入要求；
+
+机器翻译与聊天机器人不同点：
+1.语料不同；
+2.VC，翻译系统一定有两个VC表，假如是英->汉， 编码器是英文的VC1，解码器是汉语的VC2，要分的种类数与VC2长度相同；
+3.embedding,也有两套；
+4.编码器与解码器的衔接部分；embedding维度不同引起的；英文的embedding维度一般是300~1000;中文的embedding维度是100~300;不会反了吧？（）
+
+项目：
+test():
+1. s2s.py --> create_model()
+   1). s2s_model.py --> 实例化S2SModel对象：a. 定义了两层BasicLSTMCell，维度512, 组成cell；
+                                        b. 定义了embedding的权重矩阵，定义了输出的权重矩阵（哪一步？）
+                                        c. 根据最大桶设置placeholder的长度，同时放到编码和解码器输入链表中
+                                        d. 解码器的预测输出就是targets？在哪里嵌入的？
+                                        e. 三大关键代码：sampled_loss编写loss函数；seq2seq_f包含seq2seq和attention;
+                                                         model_with_buchets内部每个桶用到了seq2seq_f和sampled_loss
+
+   2).与3大关键代码相关：a.首先执行的是model_with_buckets[seq2seq.py是源代码]：组装了seq2seq_f
+                        a.其次执行的是seq2seq_f-->
+                          embedding_attention_seq2seq[seq2seq.py]:1. 对输入进行embedding，实际是加在cell上，与cell绑定，
+                                                                     rnn.static_rnn构建了编码器
+                                                                  2. 构建解码器，将全链接输出与最后一个解码器cell绑定，
+                                                                  --->
+                        b. embedding_attention_decoder[seq2seq.py]:1. 将解码器的embedding需要的w变量初始化
+                                                                   2. 将解码器的预测6865输出映射到vc，找出相应的字进行embedding，
+                                                                      作为下一个时刻解码器的输入
+                                                                      attention出现--->
+
+                        c.attention_decoder[seq2seq.py]:1.解码器的从输入到预测输出，在将该输出作为下一个时刻输入的运行过程
+                    
+                                                        2.attention机制是怎么引入的：
+                                                           1.attn_length是句长、attn_size是字的向量长,batch_size是句数
+                                                           2.[-1,attn_length,1,attn_size] 分别是句数(图片数),
+                                                             句子长(H),无意义(w),句向量(通道)
+                                                           3.hidden就是h1,h2,...
+                    b. 首先执行的是model_with_buckets[seq2seq.py是源代码]： 组装了sampled_loss[s2s_model.py]:
+                       调用tf.nn.sampled_softmax_loss
+
+2. Load模型的参数model.saver.restore
+3. 通过终端输入数据sys.stdin.readline()
+4. 将输入的句子数字化model.get_batch_data  model.get_batch（看一下？）
+5. 将数字的句子放入placeholder里，并运行model.step，得出预测输出数字化向量
+6. 将预测的数字化向量重新转化为文字 data_utils.indice_sentence（看一下）                    
